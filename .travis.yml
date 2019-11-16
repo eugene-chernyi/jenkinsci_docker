@@ -1,0 +1,14 @@
+language: minimal
+
+services:
+  - docker
+
+before_install:
+- sudo apt update -y && sudo apt install netcat
+- docker build -t jenkinsci_docker .
+- docker run -ti -d -v /var/run/docker.sock:/var/run/docker.sock --name jenkinsci_docker -p 127.0.0.1:8080:8080 jenkinsci_docker
+- docker exec -ti jenkinsci_docker docker run -d -p 127.0.0.1:8081:80 nginx
+
+script:
+- netcat -zv 127.0.0.1 8080
+- netcat -zv 127.0.0.1 8081
