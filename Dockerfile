@@ -1,6 +1,27 @@
 FROM openjdk:8-jdk-stretch
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
+ARG BUILD_PACKAGES='apt-transport-https software-properties-common gnupg2'
+
+RUN apt-get update \
+&&  apt-get upgrade -y \
+&&  apt-get install -y \
+    git  \
+    curl \
+    jq   \
+    $BUILD_PACKAGES \
+    ansible \
+    ca-certificates \
+&& curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
+&& add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/debian \
+   $(lsb_release -cs) \
+   stable" \
+&& apt-get update \
+&& apt-get install -y docker-ce \
+&& apt-get remove --purge -y $BUILD_PACKAGES \
+&& apt-get clean \
+&& apt-get autoremove -y \
+&& rm -rf /var/lib/apt/lists/*
 
 ARG user=jenkins
 ARG group=jenkins
@@ -21,7 +42,8 @@ ENV REF $REF
 RUN mkdir -p $JENKINS_HOME \
   && chown ${uid}:${gid} $JENKINS_HOME \
   && groupadd -g ${gid} ${group} \
-  && useradd -d "$JENKINS_HOME" -u ${uid} -g ${gid} -m -s /bin/bash ${user}
+  && useradd -d "$JENKINS_HOME" -u ${uid} -g ${gid} -G docker -m -s /bin/bash ${user}
+
 
 # Jenkins home directory is a volume, so configuration and build history
 # can be persisted and survive image upgrades
